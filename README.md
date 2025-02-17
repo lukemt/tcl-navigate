@@ -1,6 +1,6 @@
-# TCL Tools for VS Code
+# TCL Navigate for VS Code
 
-TCL Tools is a lightweight VS Code extension that provides symbol navigation and definition support for TCL files. With this extension, you get:
+TCL Navigate is a lightweight VS Code extension that provides symbol navigation and definition support for TCL files. With this extension, you get:
 
 - **Document Symbol Provider:** Outline view support for TCL functions defined with the `proc` keyword.
 - **Definition Provider:** Go to the definition of a TCL function, even if it's in another file.
@@ -14,7 +14,7 @@ TCL Tools is a lightweight VS Code extension that provides symbol navigation and
 
 1. Open VS Code.
 2. Go to the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
-3. Search for **TCL Tools**.
+3. Search for **TCL Navigate**.
 4. Click **Install**.
 
 Alternatively, you can install from the VSIX package if you have built the extension locally.
