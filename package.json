@@ -1,8 +1,13 @@
 {
-  "name": "tcl-outline",
-  "displayName": "tcl-outline",
+  "name": "tcl-navigate",
+  "displayName": "tcl-navigate",
   "description": "",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukemt/tcl-navigate"
+  },
+  "publisher": "lukemt",
   "engines": {
     "vscode": "^1.97.0"
   },
@@ -14,12 +19,7 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "tcl-outline.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    "commands": []
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
