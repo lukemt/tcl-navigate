@@ -1,7 +1,7 @@
-eggg
 
 proc elo {
     puts "Hello, World!"
+    eggg
 }
 
 proc Hello {
