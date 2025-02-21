@@ -2,14 +2,14 @@
   "name": "tcl-navigate",
   "displayName": "tcl-navigate",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/lukemt/tcl-navigate"
   },
   "publisher": "lukemt",
   "engines": {
-    "vscode": "^1.97.0"
+    "vscode": "^1.50.0"
   },
   "categories": [
     "Other"
