@@ -4,6 +4,7 @@ proc eggg {
     puts "Hello, World!"
     elo
     eggg
+    $hell
 }
 
 eggg
