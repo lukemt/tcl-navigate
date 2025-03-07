@@ -75,7 +75,8 @@ class TclDefinitionProvider implements vscode.DefinitionProvider {
 		const excludeGlob = Object.keys(searchExclude)
 			.filter(key => searchExclude[key])
 			.join(',');
-		const files = await vscode.workspace.findFiles('**/*.tcl', excludeGlob);
+		const files = await vscode.workspace.findFiles('**/*.tcl', `{${excludeGlob}}`);
+
 		for (const file of files) {
 			// Skip the file if it's already been checked
 			if (file.toString() === document.uri.toString()) {
