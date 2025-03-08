@@ -1,36 +1,41 @@
-# TCL Navigate for VS Code
+# TCL Navigation & Tools Extension
 
-TCL Navigate is a lightweight VS Code extension that provides symbol navigation and definition support for TCL files. With this extension, you get:
-
-- **Document Symbol Provider:** Outline view support for TCL functions defined with the `proc` keyword.
-- **Definition Provider:** Go to the definition of a TCL function, even if it's in another file.
+Enhance your TCL coding workflow in VS Code with advanced navigation features and code insights. This extension provides a comprehensive suite of tools that work with your TCL code to help you jump between procedures, namespaces, and variables, and keep your code organized.
 
 ## Features
 
-- **Document Symbols:** Automatically detects and displays TCL functions in the Outline view.
-- **Go to Definition:** Jump directly to a function's definition with a single click or shortcut.
+- **Document Outline:**  
+  Quickly see a structured outline of your TCL file, including procedures, namespaces, and variables. Navigate your code with ease.
 
-## Installation
+- **Jump-to Definition:**  
+  Click on a symbol (like a procedure or variable) and jump straight to its definition. No more searching through your code manually.
 
-1. Open VS Code.
-2. Go to the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
-3. Search for **TCL Navigate**.
-4. Click **Install**.
+- **Code Folding:**  
+  Collapse and expand blocks of code, such as procedures, control structures (if/else, loops, etc.), and namespaces, making it easier to focus on what matters.
 
-Alternatively, you can install from the VSIX package if you have built the extension locally.
+- **Hover Information:**  
+  Get helpful details when you hover over symbols—see procedure signatures, variable values, and more right in your editor.
 
-## Usage
+- **Sticky Scrolling:**  
+  Keep your context in view as you scroll, so you never lose track of where you are in your code.
 
-- **Outline View:** Open any `.tcl` file and check the Outline view. The extension will display all functions defined with the `proc` keyword.
-- **Workspace Symbol Search:** Use `Ctrl+T` (or `Cmd+T`) and type the name of the function you’re looking for.
-- **Go to Definition:** Right-click a function name and select **Go to Definition**, or use the shortcut (`F12` by default) to jump directly to the function's definition, even if it's in another file.
+## Note
 
-## File Associations
+This extension **does not** provide syntax highlighting or basic TCL language support. For those features, you will need to install another TCL extension of your choice that handles syntax highlighting and TCL language registration. Use this extension in tandem with your favorite TCL extension to get the full coding experience.
 
-If your TCL files are not recognized by VS Code as `tcl`, add the following to your `settings.json`:
+## Getting Started
 
-```json
-"files.associations": {
-  "*.tcl": "tcl"
-}
-```
+1. **Install a TCL Syntax Highlighter:**  
+   Make sure you have a TCL extension installed that provides syntax highlighting and language registration.
+
+2. **Install TCL Navigation & Tools:**  
+   Find and install this extension from the VS Code Extension Store.
+
+3. **Enjoy Enhanced TCL Coding:**  
+   Open a TCL file, and you'll see an updated document outline, improved code navigation, folding, and hover details right away.
+
+## Feedback & Contributions
+
+Your input is valuable. If you encounter issues or have suggestions, feel free to open an issue on our GitHub repository or drop a comment in the VS Code Extension Store.
+
+Happy coding with TCL!
