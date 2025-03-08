@@ -1,6 +1,6 @@
 # TCL Navigation & Tools Extension
 
-Enhance your TCL coding workflow in VS Code with advanced navigation features and code insights. This extension provides a comprehensive suite of tools that work with your TCL code to help you jump between procedures, namespaces, and variables, and keep your code organized.
+ATTENTION: No syntax highlighting is provided by this extension. You will need to install another TCL extension that provides syntax highlighting and language registration.
 
 ## Features
 
