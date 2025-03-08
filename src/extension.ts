@@ -312,40 +312,73 @@ class TclDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 		}
 	}
 
-
 	/**
 	 * Process control structures (if, elseif, else, foreach, for, while, switch, catch, etc.)
 	 * and add them as DocumentSymbols for sticky scrolling.
 	 */
+
 	private processControlBlocks(
 		document: vscode.TextDocument,
 		text: string,
 		symbols: vscode.DocumentSymbol[]
 	): void {
 		// Regex to match control blocks with an opening brace
-		const controlRegex = /\b(if|elseif|else|foreach|for|while|switch|catch)\b[^{]*{/gm;
+		const controlRegex = /\b(if|elseif|else|foreach|for|while|switch|catch)\b[^{]*{.*/gm;
 		let match: RegExpExecArray | null;
 
 		while ((match = controlRegex.exec(text)) !== null) {
 			const keyword = match[1];
-			// Find the position of the opening brace within the matched text
+			// Find the position of the opening brace
 			const openBracePos = match.index + match[0].lastIndexOf('{');
 			const closeBracePos = this.findMatchingBrace(text, openBracePos);
+			if (closeBracePos === null) {
+				continue;
+			}
 
-			if (closeBracePos !== null) {
-				const startPos = document.positionAt(match.index);
-				const endPos = document.positionAt(closeBracePos + 1);
-				const range = new vscode.Range(startPos, endPos);
-				const symbol = new vscode.DocumentSymbol(
-					keyword,
-					`${keyword} block`,
-					vscode.SymbolKind.Object,
-					range,
-					new vscode.Range(startPos, document.lineAt(startPos.line).range.end)
-				);
-				symbols.push(symbol);
+			const startPos = document.positionAt(match.index);
+			const endPos = document.positionAt(closeBracePos + 1);
+			const range = new vscode.Range(startPos, endPos);
+
+			// Only add multi-line blocks
+			if (endPos.line === startPos.line) {
+				continue;
+			}
+
+			// Create a symbol for the control block
+			const controlSymbol = new vscode.DocumentSymbol(
+				keyword,
+				`${keyword} block`,
+				vscode.SymbolKind.Object,
+				range,
+				new vscode.Range(startPos, document.lineAt(startPos.line).range.end)
+			);
+
+			// Find a parent symbol that completely encloses this block
+			const parent = this.findEnclosingSymbol(range, symbols);
+			if (parent) {
+				parent.children.push(controlSymbol);
+			} else {
+				console.log("This might empty the outline view")
+				symbols.push(controlSymbol);
 			}
 		}
+	}
+
+	/**
+	 * Recursively searches for the closest symbol that encloses the given range.
+	 */
+	private findEnclosingSymbol(
+		range: vscode.Range,
+		symbols: vscode.DocumentSymbol[]
+	): vscode.DocumentSymbol | null {
+		for (const symbol of symbols) {
+			if (symbol.range.contains(range)) {
+				// Look for a more specific child
+				const child = this.findEnclosingSymbol(range, symbol.children);
+				return child || symbol;
+			}
+		}
+		return null;
 	}
 
 
