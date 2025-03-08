@@ -103,6 +103,8 @@ proc scopeTester {} {
     }
 }
 
+set jsonExample "rofl"
+
 # Procedure with escaped braces
 proc escapedBraces {} {
     set jsonExample "\{ \"name\": \"John\", \"age\": 30 \}"
