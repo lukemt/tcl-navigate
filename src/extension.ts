@@ -28,9 +28,6 @@ class TclDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 		// Process global variables
 		this.processGlobalVariables(document, text, symbols);
 
-		// Process control blocks (if, elseif, else, foreach, etc.)
-		this.processControlBlocks(document, text, symbols);
-
 		return symbols;
 	}
 
@@ -311,76 +308,6 @@ class TclDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 			procSymbol.children.push(arraySymbol);
 		}
 	}
-
-	/**
-	 * Process control structures (if, elseif, else, foreach, for, while, switch, catch, etc.)
-	 * and add them as DocumentSymbols for sticky scrolling.
-	 */
-
-	private processControlBlocks(
-		document: vscode.TextDocument,
-		text: string,
-		symbols: vscode.DocumentSymbol[]
-	): void {
-		// Regex to match control blocks with an opening brace
-		const controlRegex = /\b(if|elseif|else|foreach|for|while|switch|catch)\b[^{]*{.*/gm;
-		let match: RegExpExecArray | null;
-
-		while ((match = controlRegex.exec(text)) !== null) {
-			const keyword = match[1];
-			// Find the position of the opening brace
-			const openBracePos = match.index + match[0].lastIndexOf('{');
-			const closeBracePos = this.findMatchingBrace(text, openBracePos);
-			if (closeBracePos === null) {
-				continue;
-			}
-
-			const startPos = document.positionAt(match.index);
-			const endPos = document.positionAt(closeBracePos + 1);
-			const range = new vscode.Range(startPos, endPos);
-
-			// Only add multi-line blocks
-			if (endPos.line === startPos.line) {
-				continue;
-			}
-
-			// Create a symbol for the control block
-			const controlSymbol = new vscode.DocumentSymbol(
-				keyword,
-				`${keyword} block`,
-				vscode.SymbolKind.Object,
-				range,
-				new vscode.Range(startPos, document.lineAt(startPos.line).range.end)
-			);
-
-			// Find a parent symbol that completely encloses this block
-			const parent = this.findEnclosingSymbol(range, symbols);
-			if (parent) {
-				parent.children.push(controlSymbol);
-			} else {
-				console.log("This might empty the outline view")
-				symbols.push(controlSymbol);
-			}
-		}
-	}
-
-	/**
-	 * Recursively searches for the closest symbol that encloses the given range.
-	 */
-	private findEnclosingSymbol(
-		range: vscode.Range,
-		symbols: vscode.DocumentSymbol[]
-	): vscode.DocumentSymbol | null {
-		for (const symbol of symbols) {
-			if (symbol.range.contains(range)) {
-				// Look for a more specific child
-				const child = this.findEnclosingSymbol(range, symbol.children);
-				return child || symbol;
-			}
-		}
-		return null;
-	}
-
 
 	/**
 	 * Find the position of the matching closing brace
@@ -1265,31 +1192,6 @@ class TclHoverProvider implements vscode.HoverProvider {
 }
 
 /**
- * Configuration for Sticky Scrolling in TCL files
- */
-function configureStickyScrolling() {
-	// Configure sticky scrolling settings for TCL files
-	vscode.workspace.getConfiguration().update(
-		'editor.stickyScroll.enabled',
-		true,
-		vscode.ConfigurationTarget.Global
-	);
-
-	vscode.workspace.getConfiguration().update(
-		'editor.stickyScroll.maxLineCount',
-		5,
-		vscode.ConfigurationTarget.Global
-	);
-
-	// Enable sticky scroll for TCL specifically
-	vscode.workspace.getConfiguration().update(
-		'editor.stickyScroll.defaultModel',
-		'outlineModel',
-		vscode.ConfigurationTarget.Global
-	);
-}
-
-/**
  * TCL language configuration for bracket matching and auto indentation
  */
 function configureTclLanguage() {
@@ -1315,9 +1217,6 @@ function configureTclLanguage() {
 export function activate(context: vscode.ExtensionContext) {
 	// Configure the TCL language for better editing experience
 	configureTclLanguage();
-
-	// Configure sticky scrolling for TCL files
-	configureStickyScrolling();
 
 	// Register the symbol provider (needed for Outline view and sticky scrolling)
 	const symbolProvider = vscode.languages.registerDocumentSymbolProvider(
