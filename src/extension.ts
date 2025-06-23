@@ -1212,6 +1212,33 @@ function configureTclLanguage() {
 }
 
 /**
+ * Run the selected TCL code in a terminal.
+ */
+function runTclSelection() {
+const editor = vscode.window.activeTextEditor;
+if (!editor || editor.document.languageId !== 'tcl') {
+return;
+}
+
+const selection = editor.selection;
+const text = selection.isEmpty
+? editor.document.lineAt(selection.active.line).text
+: editor.document.getText(selection);
+
+const config = vscode.workspace.getConfiguration('tcl-navigate');
+const terminalName = config.get<string>('tclTerminalName', 'tclsh');
+const terminalPath = config.get<string>('tclTerminalPath', 'tclsh');
+
+let terminal = vscode.window.terminals.find(t => t.name === terminalName);
+if (!terminal) {
+terminal = vscode.window.createTerminal({ name: terminalName, shellPath: terminalPath });
+}
+
+terminal.show(true);
+terminal.sendText(text, true);
+}
+
+/**
  * Activate the extension
  */
 export function activate(context: vscode.ExtensionContext) {
@@ -1237,17 +1264,23 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// Register the hover provider
-	const hoverProvider = vscode.languages.registerHoverProvider(
-		{ language: 'tcl' },
-		new TclHoverProvider()
-	);
+       const hoverProvider = vscode.languages.registerHoverProvider(
+               { language: 'tcl' },
+               new TclHoverProvider()
+       );
 
-	context.subscriptions.push(
-		symbolProvider,
-		definitionProvider,
-		foldingProvider,
-		hoverProvider
-	);
+       const runCommand = vscode.commands.registerCommand(
+               'tcl-navigate.runSelection',
+               runTclSelection
+       );
+
+       context.subscriptions.push(
+               symbolProvider,
+               definitionProvider,
+               foldingProvider,
+               hoverProvider,
+               runCommand
+       );
 
 	// Show information message that the extension is activated
 	vscode.window.showInformationMessage('TCL Extension activated with enhanced features');

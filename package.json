@@ -19,7 +19,38 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "tcl-navigate.runSelection",
+        "title": "Run TCL Selection",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "tcl-navigate.runSelection",
+          "when": "editorLangId == tcl",
+          "group": "navigation@5"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "TCL Navigate",
+      "properties": {
+        "tcl-navigate.tclTerminalName": {
+          "type": "string",
+          "default": "tclsh",
+          "description": "Name of the terminal used to run TCL commands"
+        },
+        "tcl-navigate.tclTerminalPath": {
+          "type": "string",
+          "default": "tclsh",
+          "description": "Shell path used when creating the TCL terminal"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
