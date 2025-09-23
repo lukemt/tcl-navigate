@@ -475,58 +475,27 @@ class TclDefinitionProvider implements vscode.DefinitionProvider {
 	/**
 	 * Find the definition of a namespace-qualified symbol
 	 */
-	private async findNamespaceQualifiedDefinition(
-		document: vscode.TextDocument,
-		qualifiedName: string
-	): Promise<vscode.Location | null> {
-		const parts = qualifiedName.split('::');
-		const namespace = parts.slice(0, -1).join('::');
-		const symbol = parts[parts.length - 1];
+        private async findNamespaceQualifiedDefinition(
+                document: vscode.TextDocument,
+                qualifiedName: string
+        ): Promise<vscode.Location | null> {
+                const parts = qualifiedName.split('::').filter(part => part.length > 0);
+                if (parts.length < 2) {
+                        return null;
+                }
 
-		// Look for the namespace first
-		const nsRegex = new RegExp(`namespace\\s+eval\\s+${namespace}\\s*{`, 'gm');
-		const text = document.getText();
-		let match = nsRegex.exec(text);
+                const namespace = parts.slice(0, -1).join('::');
+                const symbol = parts[parts.length - 1];
+                const text = document.getText();
 
-		if (match) {
-			// Find the namespace body
-			const nsBodyStart = match.index + match[0].length - 1;
-			const nsBodyEnd = this.findMatchingBrace(text, nsBodyStart);
+                const location = this.findNamespacedSymbolInDocument(document, text, namespace, symbol);
+                if (location) {
+                        return location;
+                }
 
-			if (nsBodyEnd) {
-				const nsBody = text.substring(nsBodyStart + 1, nsBodyEnd);
-
-				// Look for the procedure in the namespace
-				const procRegex = new RegExp(`proc\\s+${symbol}\\s*{`, 'gm');
-				const procMatch = procRegex.exec(nsBody);
-
-				if (procMatch) {
-					const startPos = document.positionAt(nsBodyStart + 1 + procMatch.index);
-					const procBodyStart = nsBodyStart + 1 + procMatch.index + procMatch[0].length - 1;
-					const procBodyEnd = this.findMatchingBrace(text, procBodyStart);
-					const endPos = procBodyEnd
-						? document.positionAt(procBodyEnd + 1)
-						: document.lineAt(startPos.line).range.end;
-
-					return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
-				}
-
-				// Look for variable in the namespace
-				const varRegex = new RegExp(`variable\\s+${symbol}(?:\\s+|$)`, 'gm');
-				const varMatch = varRegex.exec(nsBody);
-
-				if (varMatch) {
-					const startPos = document.positionAt(nsBodyStart + 1 + varMatch.index);
-					const endPos = document.positionAt(nsBodyStart + 1 + varMatch.index + varMatch[0].length);
-
-					return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
-				}
-			}
-		}
-
-		// If not found, search in workspace
-		return this.searchInWorkspace(qualifiedName);
-	}
+                // If not found, search in workspace
+                return this.searchInWorkspace(qualifiedName);
+        }
 
 	/**
 	 * Find procedure definition
@@ -623,60 +592,152 @@ class TclDefinitionProvider implements vscode.DefinitionProvider {
 	/**
 	 * Search for symbol definition in workspace
 	 */
-	private async searchInWorkspace(symbolName: string): Promise<vscode.Location | null> {
-		// Clean up symbol name for search
-		const cleanSymbol = symbolName.replace(/::/g, '');
+        private async searchInWorkspace(symbolName: string): Promise<vscode.Location | null> {
+                const parts = symbolName.split('::').filter(part => part.length > 0);
+                const isNamespaced = parts.length > 1;
+                const namespace = isNamespaced ? parts.slice(0, -1).join('::') : null;
+                const symbol = parts[parts.length - 1] ?? symbolName;
 
-		// Retrieve search.exclude configuration
-		const searchExclude = vscode.workspace.getConfiguration('search').get<Record<string, boolean>>('exclude', {});
-		const excludeGlob = Object.keys(searchExclude)
-			.filter(key => searchExclude[key])
-			.join(',');
+                // Retrieve search.exclude configuration
+                const searchExclude = vscode.workspace.getConfiguration('search').get<Record<string, boolean>>('exclude', {});
+                const excludeGlob = Object.keys(searchExclude)
+                        .filter(key => searchExclude[key])
+                        .join(',');
 
-		// Find TCL files in workspace
-		const files = await vscode.workspace.findFiles('**/*.tcl', `{${excludeGlob}}`);
+                // Find TCL files in workspace
+                const files = await vscode.workspace.findFiles('**/*.tcl', `{${excludeGlob}}`);
 
-		for (const file of files) {
-			const doc = await vscode.workspace.openTextDocument(file);
-			const text = doc.getText();
+                for (const file of files) {
+                        const doc = await vscode.workspace.openTextDocument(file);
+                        const text = doc.getText();
 
-			// Search for procedure
-			const procRegex = new RegExp(`proc\\s+(${cleanSymbol}|[\\w:]+::${cleanSymbol})\\s*{`, 'gm');
-			let match = procRegex.exec(text);
+                        if (isNamespaced && namespace) {
+                                const location = this.findNamespacedSymbolInDocument(doc, text, namespace, symbol);
+                                if (location) {
+                                        return location;
+                                }
 
-			if (match) {
-				const startPos = doc.positionAt(match.index);
-				// Find procedure body end
-				const procBodyStart = match.index + match[0].indexOf('{', match[0].indexOf('}') + 1);
-				const procBodyEnd = this.findMatchingBrace(text, procBodyStart);
-				const endPos = procBodyEnd
-					? doc.positionAt(procBodyEnd + 1)
-					: doc.lineAt(startPos.line).range.end;
+                                continue;
+                        }
 
-				return new vscode.Location(doc.uri, new vscode.Range(startPos, endPos));
-			}
+                        const escapedSymbol = this.escapeForRegex(symbol);
 
-			// Search for namespace
-			if (!symbolName.includes('::')) {
-				const nsRegex = new RegExp(`namespace\\s+eval\\s+${symbolName}\\s*{`, 'gm');
-				match = nsRegex.exec(text);
+                        // Search for procedure
+                        const procRegex = new RegExp(`proc\\s+(${escapedSymbol}|[\\\w:]+::${escapedSymbol})\\s*{`, 'gm');
+                        let match = procRegex.exec(text);
 
-				if (match) {
-					const startPos = doc.positionAt(match.index);
-					// Find namespace body end
-					const nsBodyStart = match.index + match[0].length - 1;
-					const nsBodyEnd = this.findMatchingBrace(text, nsBodyStart);
-					const endPos = nsBodyEnd
-						? doc.positionAt(nsBodyEnd + 1)
-						: doc.lineAt(startPos.line).range.end;
+                        if (match) {
+                                const startPos = doc.positionAt(match.index);
+                                const procBodyStart = match.index + match[0].length - 1;
+                                const procBodyEnd = this.findMatchingBrace(text, procBodyStart);
+                                const endPos = procBodyEnd
+                                        ? doc.positionAt(procBodyEnd + 1)
+                                        : doc.lineAt(startPos.line).range.end;
 
-					return new vscode.Location(doc.uri, new vscode.Range(startPos, endPos));
-				}
-			}
-		}
+                                return new vscode.Location(doc.uri, new vscode.Range(startPos, endPos));
+                        }
 
-		return null;
-	}
+                        // Search for namespace
+                        const nsRegex = new RegExp(`namespace\\s+eval\\s+${escapedSymbol}\\s*{`, 'gm');
+                        match = nsRegex.exec(text);
+
+                        if (match) {
+                                const startPos = doc.positionAt(match.index);
+                                const nsBodyStart = match.index + match[0].length - 1;
+                                const nsBodyEnd = this.findMatchingBrace(text, nsBodyStart);
+                                const endPos = nsBodyEnd
+                                        ? doc.positionAt(nsBodyEnd + 1)
+                                        : doc.lineAt(startPos.line).range.end;
+
+                                return new vscode.Location(doc.uri, new vscode.Range(startPos, endPos));
+                        }
+                }
+
+                return null;
+        }
+
+        private findNamespacedSymbolInDocument(
+                document: vscode.TextDocument,
+                text: string,
+                namespace: string,
+                symbol: string
+        ): vscode.Location | null {
+                const escapedNamespace = this.escapeForRegex(namespace);
+                const escapedSymbol = this.escapeForRegex(symbol);
+
+                // Direct namespaced procedure definition (e.g., proc ::ns::symbol { ... })
+                const directProcRegex = new RegExp(`proc\\s+::?${escapedNamespace}::${escapedSymbol}\\s*{`, 'gm');
+                let match = directProcRegex.exec(text);
+
+                if (match) {
+                        const startPos = document.positionAt(match.index);
+                        const procBodyStart = match.index + match[0].length - 1;
+                        const procBodyEnd = this.findMatchingBrace(text, procBodyStart);
+                        const endPos = procBodyEnd
+                                ? document.positionAt(procBodyEnd + 1)
+                                : document.lineAt(startPos.line).range.end;
+
+                        return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
+                }
+
+                // Direct namespaced variable definition (e.g., variable ::ns::symbol)
+                const directVarRegex = new RegExp(`variable\\s+::?${escapedNamespace}::${escapedSymbol}(?:\\s+|$)`, 'gm');
+                match = directVarRegex.exec(text);
+                if (match) {
+                        const startPos = document.positionAt(match.index);
+                        const endPos = document.positionAt(match.index + match[0].length);
+                        return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
+                }
+
+                // Search within namespace eval blocks
+                const nsRegex = new RegExp(`namespace\\s+eval\\s+::?${escapedNamespace}\\s*{`, 'gm');
+                let nsMatch: RegExpExecArray | null;
+
+                while ((nsMatch = nsRegex.exec(text)) !== null) {
+                        const nsBodyStart = nsMatch.index + nsMatch[0].length - 1;
+                        const nsBodyEnd = this.findMatchingBrace(text, nsBodyStart);
+
+                        if (!nsBodyEnd) {
+                                continue;
+                        }
+
+                        const nsBody = text.substring(nsBodyStart + 1, nsBodyEnd);
+
+                        // Look for the procedure inside the namespace block
+                        const procRegex = new RegExp(`proc\\s+${escapedSymbol}\\s*{`, 'gm');
+                        let procMatch: RegExpExecArray | null;
+
+                        while ((procMatch = procRegex.exec(nsBody)) !== null) {
+                                const startOffset = nsBodyStart + 1 + procMatch.index;
+                                const startPos = document.positionAt(startOffset);
+                                const procBodyStart = startOffset + procMatch[0].length - 1;
+                                const procBodyEnd = this.findMatchingBrace(text, procBodyStart);
+                                const endPos = procBodyEnd
+                                        ? document.positionAt(procBodyEnd + 1)
+                                        : document.lineAt(startPos.line).range.end;
+
+                                return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
+                        }
+
+                        // Look for variable declarations inside the namespace block
+                        const varRegex = new RegExp(`variable\\s+${escapedSymbol}(?:\\s+|$)`, 'gm');
+                        const varMatch = varRegex.exec(nsBody);
+
+                        if (varMatch) {
+                                const startOffset = nsBodyStart + 1 + varMatch.index;
+                                const startPos = document.positionAt(startOffset);
+                                const endPos = document.positionAt(startOffset + varMatch[0].length);
+
+                                return new vscode.Location(document.uri, new vscode.Range(startPos, endPos));
+                        }
+                }
+
+                return null;
+        }
+
+        private escapeForRegex(value: string): string {
+                return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
 
 	/**
 	 * Find the position of the matching closing brace
